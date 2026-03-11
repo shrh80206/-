@@ -75,6 +75,7 @@
         let selected = null
         let turn = 'w'
         let history = []
+        let gameOver = false
 
         function makeBoard(){
           boardEl.innerHTML = ''
@@ -103,6 +104,7 @@
           statusEl.textContent='狀態：進行中'
         }
         function onSquareClick(e){
+          if(gameOver) return
           const idx=Number(e.currentTarget.dataset.index)
           if(selected===null){
             const piece=boardState[idx]
@@ -129,7 +131,7 @@
         }
         function isWhite(piece){return ['♙','♖','♘','♗','♕','♔'].includes(piece)}
         function isBlack(piece){return ['♟','♜','♞','♝','♛','♚'].includes(piece)}
-        function finish(text){statusEl.textContent=text}
+        function finish(text){statusEl.textContent=text; gameOver = true}
         
         
         function legalManualMove(from,to){
@@ -242,7 +244,7 @@
           '','','','','','','','',
           '♙','♙','♙','♙','♙','♙','♙','♙',
           '♖','♘','♗','♕','♔','♗','♘','♖'
-        ];turn='w';history=[];selected=null;render()})
+        ];turn='w';history=[];selected=null;gameOver=false;render()})
         makeBoard();render()
       } else {
         // chess.js available, use complete rules
@@ -278,6 +280,7 @@
           updateStatus()
         }
         function onSquareClick(e){
+          if(game.game_over()) return
           const sq=e.currentTarget.dataset.square
           if(selected){
             const moves=game.moves({square:selected,verbose:true}).map(m=>m.to)
