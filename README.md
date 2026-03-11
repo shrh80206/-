@@ -53,4 +53,3 @@ python -m http.server 8000
 python -m http.server 8000
 # 然後在瀏覽器開啟 http://localhost:8000/static_resume.html
 ```
-
