@@ -16,6 +16,7 @@
       .light{background:var(--light)}
       .dark{background:var(--dark)}
       .highlight{outline:3px solid rgba(107,142,35,0.6)}
+      .possible{outline:3px solid rgba(0,123,255,0.6)}
       .white-piece{color:#fff;text-shadow:1px 1px 2px #000}
       .black-piece{color:#000;text-shadow:1px 1px 1px #ccc}
       .controls{display:flex;flex-direction:column;gap:8px;padding-left:16px}
@@ -100,6 +101,12 @@
           })
           if(selected!==null){
             boardEl.children[selected].classList.add('highlight')
+            // show legal moves
+            for(let i=0;i<64;i++){
+              if(i!==selected && legalManualMove && legalManualMove(selected,i)){
+                boardEl.children[i].classList.add('possible')
+              }
+            }
           }
           turnEl.textContent=turn==='w'?'白方':'黑方'
           if(!gameOver){ // only overwrite when game still going
@@ -125,11 +132,18 @@
               return;
             }
             history.push(boardState.slice())
-            const moved=boardState[selected]
+            let moved=boardState[selected]
+            // promotion choice for pawn
+            if((moved==='♙' && Math.floor(idx/8)===0) || (moved==='♟' && Math.floor(idx/8)===7)){
+              let choice = prompt('升變選項：q=后,r=車,b=象,n=騎士','q')||'q'
+              switch(choice.toLowerCase()){
+                case 'r': moved = moved==='♙'?'♖':'♜'; break;
+                case 'b': moved = moved==='♙'?'♗':'♝'; break;
+                case 'n': moved = moved==='♙'?'♘':'♞'; break;
+                default: moved = moved==='♙'?'♕':'♛';
+              }
+            }
             boardState[idx]=moved;boardState[selected]=''
-            // promotion: pawn reaches last rank auto convert to queen
-            if(moved==='♙' && Math.floor(idx/8)===0) boardState[idx]='♕'
-            if(moved==='♟' && Math.floor(idx/8)===7) boardState[idx]='♛'
             if(dest && (dest==='♔'||dest==='♚')){finish(turn==='w'?'白方 贏了！':'黑方 贏了！');render();return}
             selected=null
             turn= turn==='w'?'b':'w'
@@ -290,11 +304,19 @@
             const sq=sqEl.dataset.square
             const piece=game.get(sq)
             sqEl.textContent=piece?unicode(piece.color==='w'?piece.type.toUpperCase():piece.type):''
-            sqEl.classList.remove('highlight')
+            sqEl.classList.remove('highlight','possible')
           })
           if(selected){
             const idx=[...boardEl.children].findIndex(e=>e.dataset.square===selected)
-            if(idx>=0) boardEl.children[idx].classList.add('highlight')
+            if(idx>=0){
+              boardEl.children[idx].classList.add('highlight')
+              // show possible moves
+              const moves=game.moves({square:selected,verbose:true}).map(m=>m.to)
+              moves.forEach(sq=>{
+                const el=[...boardEl.children].find(e=>e.dataset.square===sq)
+                if(el) el.classList.add('possible')
+              })
+            }
           }
           turnEl.textContent=game.turn()==='w'?'白方':'黑方'
           updateStatus()
@@ -305,7 +327,13 @@
           if(selected){
             const moves=game.moves({square:selected,verbose:true}).map(m=>m.to)
             if(moves.includes(sq)){
-              game.move({from:selected,to:sq,promotion:'q'})
+              let promo='q'
+              const p = game.get(selected)
+              if(p && p.type==='p' && (sq[1]==='8' || sq[1]==='1')){
+                const choice = prompt('升變選項：q=后,r=車,b=象,n=騎士','q')||'q'
+                promo = choice.toLowerCase()
+              }
+              game.move({from:selected,to:sq,promotion:promo})
               selected=null;render()
             } else {selected=null;render()}
           } else {
