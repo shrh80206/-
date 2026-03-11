@@ -23,6 +23,10 @@
   <body>
     <div class="wrap">
       <h1>圈圈叉叉</h1>
+      <div style="margin-bottom:8px;text-align:center">
+        <label><input type="radio" name="mode" value="pvp" checked> 雙人對戰</label>
+        <label style="margin-left:12px"><input type="radio" name="mode" value="ai"> 對電腦</label>
+      </div>
       <div id="board" class="board" aria-label="遊戲版"></div>
 
       <div class="info">
@@ -41,6 +45,7 @@
 
       let board = Array(9).fill(null)
       let current = '×' // 使用 × 與 ○ 表示
+      let vsAI = false
       const wins = [
         [0,1,2],[3,4,5],[6,7,8],
         [0,3,6],[1,4,7],[2,5,8],
@@ -54,7 +59,8 @@
           cell.className = 'cell' + (v? ' disabled':'')
           cell.dataset.index = i
           cell.textContent = v || ''
-          cell.addEventListener('click', onCellClick)
+          // only attach click if playable
+          if(!v) cell.addEventListener('click', onCellClick)
           boardEl.appendChild(cell)
         })
         turnEl.textContent = current
@@ -63,6 +69,8 @@
       function onCellClick(e){
         const i = Number(e.currentTarget.dataset.index)
         if(board[i]) return
+        // if AI mode and it's computer's turn, ignore
+        if(vsAI && current === '○') return
         board[i] = current
         if(checkWin(current)){
           finish(`${current} 贏了！`)
@@ -74,6 +82,10 @@
         }
         current = current === '×' ? '○' : '×'
         render()
+        if(vsAI && current === '○'){
+          // let computer play after short delay
+          setTimeout(aiMove, 200)
+        }
       }
 
       function checkWin(player){
@@ -103,11 +115,77 @@
         statusEl.textContent = '輪到：'
         render()
       }
+      
+      function aiMove(){
+        // simple minimax for unbeatable play
+        const best = minimax(board, '○')
+        if(best.index !== null){
+          board[best.index] = '○'
+          if(checkWin('○')){
+            finish('○ 贏了！')
+            return
+          }
+          if(board.every(Boolean)){
+            finish('和局')
+            return
+          }
+          current = '×'
+          render()
+        }
+      }
+      
+      function minimax(newBoard, player){
+        const avail = newBoard
+          .map((v,i)=> v? null : i)
+          .filter(i=>i!==null)
+        if(checkLocalWin(newBoard, '×')){
+          return {score: -10}
+        } else if(checkLocalWin(newBoard, '○')){
+          return {score: 10}
+        } else if(avail.length === 0){
+          return {score: 0}
+        }
+        const moves = []
+        for(const i of avail){
+          const move = {}
+          move.index = i
+          newBoard[i] = player
+          const result = minimax(newBoard, player === '○' ? '×' : '○')
+          move.score = result.score
+          newBoard[i] = null
+          moves.push(move)
+        }
+        let bestMove
+        if(player === '○'){
+          // maximize
+          let bestScore = -Infinity
+          for(const mv of moves){ if(mv.score > bestScore){ bestScore = mv.score; bestMove = mv }}
+        } else {
+          // minimize
+          let bestScore = Infinity
+          for(const mv of moves){ if(mv.score < bestScore){ bestScore = mv.score; bestMove = mv }}
+        }
+        return bestMove
+      }
+
+      function checkLocalWin(bd, pl){
+        for(const [a,b,c] of wins){
+          if(bd[a]===pl && bd[b]===pl && bd[c]===pl) return true
+        }
+        return false
+      }
 
       restartBtn.addEventListener('click', ()=>{
         reset()
       })
 
+      // listen for mode change
+      document.querySelectorAll('input[name="mode"]').forEach(el=>{
+        el.addEventListener('change', e=>{
+          vsAI = e.target.value === 'ai'
+          reset()
+        })
+      })
       // 首次渲染
       render()
     </script>

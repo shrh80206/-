@@ -59,15 +59,16 @@
       const undoBtn = document.getElementById('undo')
       const resetBtn = document.getElementById('reset')
 
+      // use Unicode symbols for better display
       let boardState = [
-        'r','n','b','q','k','b','n','r',
-        'p','p','p','p','p','p','p','p',
+        '♜','♞','♝','♛','♚','♝','♞','♜',
+        '♟','♟','♟','♟','♟','♟','♟','♟',
         '','','','','','','','',
         '','','','','','','','',
         '','','','','','','','',
         '','','','','','','','',
-        'P','P','P','P','P','P','P','P',
-        'R','N','B','Q','K','B','N','R'
+        '♙','♙','♙','♙','♙','♙','♙','♙',
+        '♖','♘','♗','♕','♔','♗','♘','♖'
       ]
       let selected = null
       let turn = 'w'
@@ -101,18 +102,41 @@
         statusEl.textContent = '狀態：進行中'
       }
 
+      function isWhite(piece){
+        return ['♙','♖','♘','♗','♕','♔'].includes(piece)
+      }
+      function isBlack(piece){
+        return ['♟','♜','♞','♝','♛','♚'].includes(piece)
+      }
+
       function onSquareClick(e){
         const idx = Number(e.currentTarget.dataset.index)
         if(selected === null){
           const piece = boardState[idx]
-          if(piece && ((turn==='w' && piece===piece.toUpperCase()) || (turn==='b' && piece===piece.toLowerCase()))){
+          if(piece && ((turn==='w' && isWhite(piece)) || (turn==='b' && isBlack(piece)))){
             selected = idx
             render()
           }
         } else {
+          const dest = boardState[idx]
+          // prevent capturing own piece
+          if(dest && ((turn==='w' && isWhite(dest)) || (turn==='b' && isBlack(dest)))){
+            // ignore move
+            selected = null
+            render()
+            return
+          }
           history.push(boardState.slice())
-          boardState[idx] = boardState[selected]
+          // check king capture
+          const moved = boardState[selected]
+          boardState[idx] = moved
           boardState[selected] = ''
+          if(dest && (dest === '♔' || dest === '♚')){
+            // moved piece captured king -> game over
+            finish(turn === 'w' ? '白方 贏了！' : '黑方 贏了！')
+            render()
+            return
+          }
           selected = null
           turn = turn === 'w' ? 'b' : 'w'
           render()
@@ -130,14 +154,14 @@
 
       resetBtn.addEventListener('click', ()=>{
         boardState = [
-          'r','n','b','q','k','b','n','r',
-          'p','p','p','p','p','p','p','p',
+          '♜','♞','♝','♛','♚','♝','♞','♜',
+          '♟','♟','♟','♟','♟','♟','♟','♟',
           '','','','','','','','',
           '','','','','','','','',
           '','','','','','','','',
           '','','','','','','','',
-          'P','P','P','P','P','P','P','P',
-          'R','N','B','Q','K','B','N','R'
+          '♙','♙','♙','♙','♙','♙','♙','♙',
+          '♖','♘','♗','♕','♔','♗','♘','♖'
         ]
         turn = 'w'; history = []
         selected = null
