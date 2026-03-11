@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>圈圈叉叉</title>
+    <style>
+      :root{--bg:#ffffff;--cell:#f2f4f7;--accent:#6B8E23;--text:#111}
+      *{box-sizing:border-box}
+      body{font-family:system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;margin:0;background:var(--bg);color:var(--text);display:flex;align-items:center;justify-content:center;height:100vh}
+      .wrap{width:360px}
+      h1{margin:0 0 12px;font-size:20px;text-align:center}
+      .board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:transparent;padding:8px}
+      .cell{aspect-ratio:1/1;background:var(--cell);display:flex;align-items:center;justify-content:center;font-size:48px;border-radius:8px;cursor:pointer;user-select:none}
+      .cell:hover{filter:brightness(0.98)}
+      .info{margin-top:12px;display:flex;justify-content:space-between;align-items:center}
+      .status{font-size:16px}
+      .btn{background:transparent;border:1px solid var(--accent);color:var(--accent);padding:6px 10px;border-radius:6px;cursor:pointer}
+      .win{background:linear-gradient(90deg, rgba(107,142,35,0.12), rgba(107,142,35,0.06));}
+      .disabled{pointer-events:none;opacity:0.9}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>圈圈叉叉</h1>
+      <div id="board" class="board" aria-label="遊戲版"></div>
+
+      <div class="info">
+        <div id="status" class="status">輪到：<span id="turn">×</span></div>
+        <div>
+          <button id="restart" class="btn">重新開始</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const boardEl = document.getElementById('board')
+      const statusEl = document.getElementById('status')
+      const turnEl = document.getElementById('turn')
+      const restartBtn = document.getElementById('restart')
+
+      let board = Array(9).fill(null)
+      let current = '×' // 使用 × 與 ○ 表示
+      const wins = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+      ]
+
+      function render(){
+        boardEl.innerHTML = ''
+        board.forEach((v,i)=>{
+          const cell = document.createElement('div')
+          cell.className = 'cell' + (v? ' disabled':'')
+          cell.dataset.index = i
+          cell.textContent = v || ''
+          cell.addEventListener('click', onCellClick)
+          boardEl.appendChild(cell)
+        })
+        turnEl.textContent = current
+      }
+
+      function onCellClick(e){
+        const i = Number(e.currentTarget.dataset.index)
+        if(board[i]) return
+        board[i] = current
+        if(checkWin(current)){
+          finish(`${current} 贏了！`)
+          return
+        }
+        if(board.every(Boolean)){
+          finish('和局')
+          return
+        }
+        current = current === '×' ? '○' : '×'
+        render()
+      }
+
+      function checkWin(player){
+        for(const [a,b,c] of wins){
+          if(board[a]===player && board[b]===player && board[c]===player){
+            // 標示獲勝格
+            const cells = boardEl.children
+            cells[a].classList.add('win')
+            cells[b].classList.add('win')
+            cells[c].classList.add('win')
+            // 停用其他格
+            for(let i=0;i<cells.length;i++) cells[i].classList.add('disabled')
+            return true
+          }
+        }
+        return false
+      }
+
+      function finish(text){
+        statusEl.textContent = text
+        // 顯示結果後仍保留符號
+      }
+
+      function reset(){
+        board = Array(9).fill(null)
+        current = '×'
+        statusEl.textContent = '輪到：'
+        render()
+      }
+
+      restartBtn.addEventListener('click', ()=>{
+        reset()
+      })
+
+      // 首次渲染
+      render()
+    </script>
+  </body>
+</html>

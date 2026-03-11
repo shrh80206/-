@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>西洋棋</title>
+    <style>
+      :root{--bg:#ffffff;--light:#f0d9b5;--dark:#b58863;--accent:#6B8E23}
+      *{box-sizing:border-box}
+      body{font-family:system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;margin:0;background:var(--bg);color:#111;display:flex;align-items:center;justify-content:center;padding:24px}
+      .wrap{max-width:900px;width:100%}
+      h1{margin:0 0 12px;text-align:center}
+      .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+      .board{width:520px;height:520px;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border:4px solid #333;margin:auto}
+      .square{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600;cursor:pointer;user-select:none}
+      .light{background:var(--light)}
+      .dark{background:var(--dark)}
+      .highlight{outline:3px solid rgba(107,142,35,0.6)}
+      .white-piece{color:#fff;text-shadow:1px 1px 2px #000}
+      .black-piece{color:#000;text-shadow:1px 1px 1px #ccc}
+      .controls{display:flex;flex-direction:column;gap:8px;padding-left:16px}
+      .info{font-size:16px}
+      .btn{padding:8px 10px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+      .row{display:flex;gap:12px}
+      pre{white-space:pre-wrap;background:#f7f7f7;padding:8px;border-radius:6px}
+      @media(max-width:880px){.wrap{padding:8px}.board{width:360px;height:360px}}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>西洋棋（點選棋格移動）</h1>
+      <div class="top">
+        <div class="info">
+          <div>回合：<strong id="turn">白方</strong></div>
+          <div id="status">狀態：進行中</div>
+        </div>
+        <div class="controls">
+          <div class="row">
+            <button id="undo" class="btn">悔棋</button>
+            <button id="reset" class="btn">重置</button>
+          </div>
+          <div>
+            <div style="font-weight:600">棋局記錄（PGN）</div>
+            <pre id="pgn" style="max-height:140px;overflow:auto"></pre>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <div id="board" class="board" role="grid" aria-label="西洋棋棋盤"></div>
+      </div>
+    </div>
+
+    <script>
+      // 輕量版棋盤：不依賴外部資料
+      const boardEl = document.getElementById('board')
+      const statusEl = document.getElementById('status')
+      const turnEl = document.getElementById('turn')
+      const undoBtn = document.getElementById('undo')
+      const resetBtn = document.getElementById('reset')
+
+      let boardState = [
+        'r','n','b','q','k','b','n','r',
+        'p','p','p','p','p','p','p','p',
+        '','','','','','','','',
+        '','','','','','','','',
+        '','','','','','','','',
+        '','','','','','','','',
+        'P','P','P','P','P','P','P','P',
+        'R','N','B','Q','K','B','N','R'
+      ]
+      let selected = null
+      let turn = 'w'
+      let history = []
+
+      function makeBoard(){
+        boardEl.innerHTML = ''
+        for(let r=8;r>=1;r--){
+          for(let f=0;f<8;f++){
+            const idx = (8-r)*8 + f
+            const div = document.createElement('div')
+            div.className = 'square ' + (((f + r) % 2 === 0) ? 'light' : 'dark')
+            div.dataset.index = idx
+            div.addEventListener('click', onSquareClick)
+            boardEl.appendChild(div)
+          }
+        }
+      }
+
+      function render(){
+        const squares = boardEl.querySelectorAll('.square')
+        squares.forEach(sqEl => {
+          const idx = Number(sqEl.dataset.index)
+          sqEl.textContent = boardState[idx] || ''
+          sqEl.classList.remove('highlight')
+        })
+        if(selected !== null){
+          boardEl.children[selected].classList.add('highlight')
+        }
+        turnEl.textContent = turn === 'w' ? '白方' : '黑方'
+        statusEl.textContent = '狀態：進行中'
+      }
+
+      function onSquareClick(e){
+        const idx = Number(e.currentTarget.dataset.index)
+        if(selected === null){
+          const piece = boardState[idx]
+          if(piece && ((turn==='w' && piece===piece.toUpperCase()) || (turn==='b' && piece===piece.toLowerCase()))){
+            selected = idx
+            render()
+          }
+        } else {
+          history.push(boardState.slice())
+          boardState[idx] = boardState[selected]
+          boardState[selected] = ''
+          selected = null
+          turn = turn === 'w' ? 'b' : 'w'
+          render()
+        }
+      }
+
+      undoBtn.addEventListener('click', ()=>{
+        if(history.length){
+          boardState = history.pop()
+          turn = turn === 'w' ? 'b' : 'w'
+          selected = null
+          render()
+        }
+      })
+
+      resetBtn.addEventListener('click', ()=>{
+        boardState = [
+          'r','n','b','q','k','b','n','r',
+          'p','p','p','p','p','p','p','p',
+          '','','','','','','','',
+          '','','','','','','','',
+          '','','','','','','','',
+          '','','','','','','','',
+          'P','P','P','P','P','P','P','P',
+          'R','N','B','Q','K','B','N','R'
+        ]
+        turn = 'w'; history = []
+        selected = null
+        render()
+      })
+
+      makeBoard()
+      render()
+    </script>
+  </body>
+</html>
