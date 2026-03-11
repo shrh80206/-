@@ -127,6 +127,9 @@
             history.push(boardState.slice())
             const moved=boardState[selected]
             boardState[idx]=moved;boardState[selected]=''
+            // promotion: pawn reaches last rank auto convert to queen
+            if(moved==='♙' && Math.floor(idx/8)===0) boardState[idx]='♕'
+            if(moved==='♟' && Math.floor(idx/8)===7) boardState[idx]='♛'
             if(dest && (dest==='♔'||dest==='♚')){finish(turn==='w'?'白方 贏了！':'黑方 贏了！');render();return}
             selected=null
             turn= turn==='w'?'b':'w'
