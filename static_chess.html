@@ -112,6 +112,12 @@
           } else {
             const dest=boardState[idx]
             if(dest && ((turn==='w'&&isWhite(dest))||(turn==='b'&&isBlack(dest)))){selected=null;render();return}
+            // only allow legal moves in manual fallback
+            if(typeof legalManualMove === 'function' && !legalManualMove(selected, idx)){
+              statusEl.textContent = '不合法的走法';
+              // keep selection active
+              return;
+            }
             history.push(boardState.slice())
             const moved=boardState[selected]
             boardState[idx]=moved;boardState[selected]=''
@@ -124,6 +130,41 @@
         function isWhite(piece){return ['♙','♖','♘','♗','♕','♔'].includes(piece)}
         function isBlack(piece){return ['♟','♜','♞','♝','♛','♚'].includes(piece)}
         function finish(text){statusEl.textContent=text}
+        
+        
+        function legalManualMove(from,to){
+          const piece=boardState[from]
+          const dir = isWhite(piece)? -1 : 1 // white moves up (decreasing index rows)
+          const fromRow = Math.floor(from/8)
+          const toRow = Math.floor(to/8)
+          const fromCol = from%8
+          const toCol = to%8
+          // pawn
+          if(piece==='♙' || piece==='♟'){
+            // straight move
+            if(fromCol===toCol){
+              const step = toRow - fromRow
+              if(step===dir){
+                return boardState[to]===''
+              }
+              if(step===2*dir){
+                // initial double move
+                if((isWhite(piece)&&fromRow===6)||(isBlack(piece)&&fromRow===1)){
+                  // ensure path empty
+                  const mid = from+dir*8
+                  return boardState[mid]==='' && boardState[to]===''
+                }
+              }
+            }
+            // capture diagonal
+            if(Math.abs(toCol-fromCol)===1 && toRow-fromRow===dir){
+              return boardState[to]!=='' // must capture
+            }
+            return false
+          }
+          // non-pawn always allowed
+          return true
+        }
         undoBtn.addEventListener('click',()=>{if(history.length){boardState=history.pop();turn=turn==='w'?'b':'w';selected=null;render()}})
         resetBtn.addEventListener('click',()=>{boardState=[
           '♜','♞','♝','♛','♚','♝','♞','♜',
