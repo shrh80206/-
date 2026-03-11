@@ -51,109 +51,18 @@
       </div>
     </div>
 
+    <script src="https://unpkg.com/chess.js@1.0.0/chess.min.js"></script>
     <script>
-      // 輕量版棋盤：不依賴外部資料
       const boardEl = document.getElementById('board')
       const statusEl = document.getElementById('status')
       const turnEl = document.getElementById('turn')
       const undoBtn = document.getElementById('undo')
       const resetBtn = document.getElementById('reset')
 
-      // use Unicode symbols for better display
-      let boardState = [
-        '♜','♞','♝','♛','♚','♝','♞','♜',
-        '♟','♟','♟','♟','♟','♟','♟','♟',
-        '','','','','','','','',
-        '','','','','','','','',
-        '','','','','','','','',
-        '','','','','','','','',
-        '♙','♙','♙','♙','♙','♙','♙','♙',
-        '♖','♘','♗','♕','♔','♗','♘','♖'
-      ]
-      let selected = null
-      let turn = 'w'
-      let history = []
-
-      function makeBoard(){
-        boardEl.innerHTML = ''
-        for(let r=8;r>=1;r--){
-          for(let f=0;f<8;f++){
-            const idx = (8-r)*8 + f
-            const div = document.createElement('div')
-            div.className = 'square ' + (((f + r) % 2 === 0) ? 'light' : 'dark')
-            div.dataset.index = idx
-            div.addEventListener('click', onSquareClick)
-            boardEl.appendChild(div)
-          }
-        }
-      }
-
-      function render(){
-        const squares = boardEl.querySelectorAll('.square')
-        squares.forEach(sqEl => {
-          const idx = Number(sqEl.dataset.index)
-          sqEl.textContent = boardState[idx] || ''
-          sqEl.classList.remove('highlight')
-        })
-        if(selected !== null){
-          boardEl.children[selected].classList.add('highlight')
-        }
-        turnEl.textContent = turn === 'w' ? '白方' : '黑方'
-        statusEl.textContent = '狀態：進行中'
-      }
-
-      function isWhite(piece){
-        return ['♙','♖','♘','♗','♕','♔'].includes(piece)
-      }
-      function isBlack(piece){
-        return ['♟','♜','♞','♝','♛','♚'].includes(piece)
-      }
-
-      function onSquareClick(e){
-        const idx = Number(e.currentTarget.dataset.index)
-        if(selected === null){
-          const piece = boardState[idx]
-          if(piece && ((turn==='w' && isWhite(piece)) || (turn==='b' && isBlack(piece)))){
-            selected = idx
-            render()
-          }
-        } else {
-          const dest = boardState[idx]
-          // prevent capturing own piece
-          if(dest && ((turn==='w' && isWhite(dest)) || (turn==='b' && isBlack(dest)))){
-            // ignore move
-            selected = null
-            render()
-            return
-          }
-          history.push(boardState.slice())
-          // check king capture
-          const moved = boardState[selected]
-          boardState[idx] = moved
-          boardState[selected] = ''
-          if(dest && (dest === '♔' || dest === '♚')){
-            // moved piece captured king -> game over
-            finish(turn === 'w' ? '白方 贏了！' : '黑方 贏了！')
-            render()
-            return
-          }
-          selected = null
-          turn = turn === 'w' ? 'b' : 'w'
-          render()
-        }
-      }
-
-      undoBtn.addEventListener('click', ()=>{
-        if(history.length){
-          boardState = history.pop()
-          turn = turn === 'w' ? 'b' : 'w'
-          selected = null
-          render()
-        }
-      })
-
-      resetBtn.addEventListener('click', ()=>{
-        boardState = [
+      // if chess.js failed to load, fall back to simple static board
+      if(typeof Chess !== 'function'){
+        // manual logic from previous version
+        let boardState = [
           '♜','♞','♝','♛','♚','♝','♞','♜',
           '♟','♟','♟','♟','♟','♟','♟','♟',
           '','','','','','','','',
@@ -163,13 +72,129 @@
           '♙','♙','♙','♙','♙','♙','♙','♙',
           '♖','♘','♗','♕','♔','♗','♘','♖'
         ]
-        turn = 'w'; history = []
-        selected = null
-        render()
-      })
+        let selected = null
+        let turn = 'w'
+        let history = []
 
-      makeBoard()
-      render()
+        function makeBoard(){
+          boardEl.innerHTML = ''
+          for(let r=8;r>=1;r--){
+            for(let f=0;f<8;f++){
+              const idx = (8-r)*8 + f
+              const div = document.createElement('div')
+              div.className = 'square ' + (((f + r) % 2 === 0) ? 'light' : 'dark')
+              div.dataset.index = idx
+              div.addEventListener('click', onSquareClick)
+              boardEl.appendChild(div)
+            }
+          }
+        }
+        function render(){
+          const squares = boardEl.querySelectorAll('.square')
+          squares.forEach(sqEl=>{
+            const idx=Number(sqEl.dataset.index)
+            sqEl.textContent=boardState[idx]||''
+            sqEl.classList.remove('highlight')
+          })
+          if(selected!==null){
+            boardEl.children[selected].classList.add('highlight')
+          }
+          turnEl.textContent=turn==='w'?'白方':'黑方'
+          statusEl.textContent='狀態：進行中'
+        }
+        function onSquareClick(e){
+          const idx=Number(e.currentTarget.dataset.index)
+          if(selected===null){
+            const piece=boardState[idx]
+            if(piece && ((turn==='w'&&isWhite(piece))||(turn==='b'&&isBlack(piece)))){
+              selected=idx;render()
+            }
+          } else {
+            const dest=boardState[idx]
+            if(dest && ((turn==='w'&&isWhite(dest))||(turn==='b'&&isBlack(dest)))){selected=null;render();return}
+            history.push(boardState.slice())
+            const moved=boardState[selected]
+            boardState[idx]=moved;boardState[selected]=''
+            if(dest && (dest==='♔'||dest==='♚')){finish(turn==='w'?'白方 贏了！':'黑方 贏了！');render();return}
+            selected=null
+            turn= turn==='w'?'b':'w'
+            render()
+          }
+        }
+        function isWhite(piece){return ['♙','♖','♘','♗','♕','♔'].includes(piece)}
+        function isBlack(piece){return ['♟','♜','♞','♝','♛','♚'].includes(piece)}
+        function finish(text){statusEl.textContent=text}
+        undoBtn.addEventListener('click',()=>{if(history.length){boardState=history.pop();turn=turn==='w'?'b':'w';selected=null;render()}})
+        resetBtn.addEventListener('click',()=>{boardState=[
+          '♜','♞','♝','♛','♚','♝','♞','♜',
+          '♟','♟','♟','♟','♟','♟','♟','♟',
+          '','','','','','','','',
+          '','','','','','','','',
+          '','','','','','','','',
+          '','','','','','','','',
+          '♙','♙','♙','♙','♙','♙','♙','♙',
+          '♖','♘','♗','♕','♔','♗','♘','♖'
+        ];turn='w';history=[];selected=null;render()})
+        makeBoard();render()
+      } else {
+        // chess.js available, use complete rules
+        const game=new Chess()
+        let selected=null
+        const files=['a','b','c','d','e','f','g','h']
+        function makeBoard(){
+          boardEl.innerHTML=''
+          for(let r=8;r>=1;r--){
+            for(let f=0;f<8;f++){
+              const sq=files[f]+r
+              const div=document.createElement('div')
+              div.className='square '+(((f+r)%2===0)?'light':'dark')
+              div.dataset.square=sq
+              div.addEventListener('click',onSquareClick)
+              boardEl.appendChild(div)
+            }
+          }
+        }
+        function render(){
+          const squares=boardEl.querySelectorAll('.square')
+          squares.forEach(sqEl=>{
+            const sq=sqEl.dataset.square
+            const piece=game.get(sq)
+            sqEl.textContent=piece?unicode(piece.color==='w'?piece.type.toUpperCase():piece.type):''
+            sqEl.classList.remove('highlight')
+          })
+          if(selected){
+            const idx=[...boardEl.children].findIndex(e=>e.dataset.square===selected)
+            if(idx>=0) boardEl.children[idx].classList.add('highlight')
+          }
+          turnEl.textContent=game.turn()==='w'?'白方':'黑方'
+          updateStatus()
+        }
+        function onSquareClick(e){
+          const sq=e.currentTarget.dataset.square
+          if(selected){
+            const moves=game.moves({square:selected,verbose:true}).map(m=>m.to)
+            if(moves.includes(sq)){
+              game.move({from:selected,to:sq,promotion:'q'})
+              selected=null;render()
+            } else {selected=null;render()}
+          } else {
+            const piece=game.get(sq)
+            if(piece&&((piece.color==='w'&&game.turn()==='w')||(piece.color==='b'&&game.turn()==='b'))){
+              selected=sq;render()
+            }
+          }
+        }
+        function updateStatus(){
+          if(game.in_checkmate()){statusEl.textContent='狀態：將死，'+(game.turn()==='w'?'黑方':'白方')+' 勝利'}
+          else if(game.in_draw()){statusEl.textContent='狀態：和局'}
+          else if(game.in_check()){statusEl.textContent='狀態：被將軍'}
+          else{statusEl.textContent='狀態：進行中'}
+        }
+        function unicode(p){const m={p:'♟',r:'♜',n:'♞',b:'♝',q:'♛',k:'♚',P:'♙',R:'♖',N:'♘',B:'♗',Q:'♕',K:'♔'};return m[p]||''}
+        undoBtn.addEventListener('click',()=>{game.undo();selected=null;render()})
+        resetBtn.addEventListener('click',()=>{game.reset();selected=null;render()})
+        makeBoard();render()
+      }
     </script>
   </body>
 </html>
