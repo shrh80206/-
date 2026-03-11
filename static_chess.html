@@ -162,6 +162,41 @@
         }
         
         
+        // display a modal overlay allowing user to choose promotion piece
+        function showPromotionOptions(color,callback){
+          const overlay=document.createElement('div')
+          overlay.style.position='fixed';overlay.style.top=0;overlay.style.left=0;
+          overlay.style.width='100%';overlay.style.height='100%';
+          overlay.style.background='rgba(0,0,0,0.4)';
+          overlay.style.display='flex';overlay.style.alignItems='center';
+          overlay.style.justifyContent='center';overlay.style.zIndex=9999;
+          overlay.addEventListener('click', e=>{
+            if(e.target===overlay){
+              document.body.removeChild(overlay);
+              callback(color==='w'?'♕':'♛');
+            }
+          });
+          const box=document.createElement('div')
+          box.style.background='#fff';box.style.padding='12px';box.style.borderRadius='8px';
+          box.style.display='flex';box.style.flexDirection='column';box.style.alignItems='center';
+          box.style.gap='12px';
+          const title=document.createElement('div');
+          title.textContent='請選擇升變棋子';
+          title.style.fontSize='16px';title.style.marginBottom='6px';
+          box.appendChild(title);
+          const pieces = color==='w'?['♕','♖','♗','♘']:['♛','♜','♝','♞'];
+          const row=document.createElement('div');row.style.display='flex';row.style.gap='12px';
+          pieces.forEach(p=>{
+            const btn=document.createElement('button');
+            btn.textContent=p;btn.style.fontSize='28px';
+            btn.style.padding='8px';btn.onclick=()=>{document.body.removeChild(overlay);callback(p)};
+            row.appendChild(btn);
+          });
+          box.appendChild(row);
+          overlay.appendChild(box);
+          document.body.appendChild(overlay);
+        }
+
         function legalManualMove(from,to){
           const piece=boardState[from]
           if(!piece) return false
