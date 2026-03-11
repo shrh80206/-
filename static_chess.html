@@ -134,35 +134,102 @@
         
         function legalManualMove(from,to){
           const piece=boardState[from]
-          const dir = isWhite(piece)? -1 : 1 // white moves up (decreasing index rows)
+          if(!piece) return false
+          const target=boardState[to]
+          // can't capture own piece
+          if(target && ((isWhite(piece)&&isWhite(target))||(isBlack(piece)&&isBlack(target)))) return false
+
           const fromRow = Math.floor(from/8)
           const toRow = Math.floor(to/8)
           const fromCol = from%8
           const toCol = to%8
-          // pawn
+          const rowDiff = toRow - fromRow
+          const colDiff = toCol - fromCol
+
+          // pawn handled specially above
           if(piece==='♙' || piece==='♟'){
+            const dir = isWhite(piece)? -1 : 1
             // straight move
-            if(fromCol===toCol){
-              const step = toRow - fromRow
-              if(step===dir){
-                return boardState[to]===''
-              }
-              if(step===2*dir){
-                // initial double move
+            if(colDiff===0){
+              if(rowDiff===dir) return target===''
+              if(rowDiff===2*dir){
                 if((isWhite(piece)&&fromRow===6)||(isBlack(piece)&&fromRow===1)){
-                  // ensure path empty
-                  const mid = from+dir*8
-                  return boardState[mid]==='' && boardState[to]===''
+                  const mid = from + dir*8
+                  return boardState[mid]==='' && target===''
                 }
               }
+              return false
             }
             // capture diagonal
-            if(Math.abs(toCol-fromCol)===1 && toRow-fromRow===dir){
-              return boardState[to]!=='' // must capture
+            if(Math.abs(colDiff)===1 && rowDiff===dir) return target!==''
+            return false
+          }
+
+          // knight moves: L-shape
+          if(piece==='♘' || piece==='♞'){
+            if((Math.abs(rowDiff)===2 && Math.abs(colDiff)===1) ||
+               (Math.abs(rowDiff)===1 && Math.abs(colDiff)===2)) return true
+            return false
+          }
+
+          // king: one square any direction
+          if(piece==='♔' || piece==='♚'){
+            return Math.abs(rowDiff)<=1 && Math.abs(colDiff)<=1
+          }
+
+          // rook, bishop, queen require path checks
+          function pathClear(deltaRow, deltaCol){
+            let r=fromRow+deltaRow, c=fromCol+deltaCol
+            while(r!==toRow || c!==toCol){
+              const idx = r*8 + c
+              if(boardState[idx] !== '') return false
+              r += deltaRow; c += deltaCol
+            }
+            return true
+          }
+
+          // rook
+          if(piece==='♖' || piece==='♜'){
+            if(fromRow===toRow){
+              const step = colDiff>0?1:-1
+              return pathClear(0,step)
+            }
+            if(fromCol===toCol){
+              const step = rowDiff>0?1:-1
+              return pathClear(step,0)
             }
             return false
           }
-          // non-pawn always allowed
+
+          // bishop
+          if(piece==='♗' || piece==='♝'){
+            if(Math.abs(rowDiff)===Math.abs(colDiff)){
+              const stepR = rowDiff>0?1:-1
+              const stepC = colDiff>0?1:-1
+              return pathClear(stepR,stepC)
+            }
+            return false
+          }
+
+          // queen
+          if(piece==='♕' || piece==='♛'){
+            if(rowDiff===0){
+              const step = colDiff>0?1:-1
+              return pathClear(0,step)
+            }
+            if(colDiff===0){
+              const step = rowDiff>0?1:-1
+              return pathClear(step,0)
+            }
+            if(Math.abs(rowDiff)===Math.abs(colDiff)){
+              const stepR = rowDiff>0?1:-1
+              const stepC = colDiff>0?1:-1
+              return pathClear(stepR,stepC)
+            }
+            return false
+          }
+
+          // default allow for anything else
           return true
         }
         undoBtn.addEventListener('click',()=>{if(history.length){boardState=history.pop();turn=turn==='w'?'b':'w';selected=null;render()}})
