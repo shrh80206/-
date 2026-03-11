@@ -41,6 +41,14 @@
             <button id="undo" class="btn">悔棋</button>
             <button id="reset" class="btn">重置</button>
           </div>
+          <div class="row" style="align-items:center">
+            對手：
+            <select id="aiSelector" class="btn" style="padding:4px 8px">
+              <option value="none">人類</option>
+              <option value="w">電腦白</option>
+              <option value="b">電腦黑</option>
+            </select>
+          </div>
           <div>
             <div style="font-weight:600">棋局記錄（PGN）</div>
             <pre id="pgn" style="max-height:140px;overflow:auto"></pre>
@@ -60,6 +68,12 @@
       const turnEl = document.getElementById('turn')
       const undoBtn = document.getElementById('undo')
       const resetBtn = document.getElementById('reset')
+      const aiSelector = document.getElementById('aiSelector')
+      let aiSide = null
+      aiSelector.addEventListener('change', e=>{
+        aiSide = e.target.value==='none'?null:e.target.value
+        maybeAIMove()
+      })
 
       // if chess.js failed to load, fall back to simple static board
       if(typeof Chess !== 'function'){
@@ -115,6 +129,7 @@
             statusEl.textContent='狀態：進行中'
             statusEl.classList.remove('win')
           }
+          maybeAIMove()
         }
         function clearPossible(){
           boardEl.querySelectorAll('.possible').forEach(el=>el.classList.remove('possible'))
@@ -159,6 +174,52 @@
           statusEl.textContent=text
           statusEl.classList.add('win')
           gameOver = true
+        }
+        
+        function maybeAIMove(){
+          if(!aiSide || gameOver) return
+          if(turn!==aiSide) return
+          // small delay for realism
+          setTimeout(()=>{
+            if(typeof Chess==='function'){
+              const moves = game.moves()
+              if(moves.length){
+                const m = moves[Math.floor(Math.random()*moves.length)]
+                game.move(m)
+                selected=null
+                render()
+              }
+            } else {
+              const moves=generateLegalMoves(aiSide)
+              if(moves.length){
+                const mv=moves[Math.floor(Math.random()*moves.length)]
+                history.push(boardState.slice())
+                const moved=boardState[mv.from]
+                boardState[mv.to]=moved
+                boardState[mv.from]=''
+                // promotion check
+                if((moved==='♙'&&Math.floor(mv.to/8)===0)||(moved==='♟'&&Math.floor(mv.to/8)===7)){
+                  boardState[mv.to]=aiSide==='w'?'♕':'♛'
+                }
+                if(boardState[mv.to]==='♔'||boardState[mv.to]==='♚'){finish(aiSide==='w'?'白方 贏了！':'黑方 贏了！')}
+                turn= turn==='w'?'b':'w'
+                render()
+              }
+            }
+          },200)
+        }
+        
+        function generateLegalMoves(color){
+          const list=[]
+          for(let i=0;i<64;i++){
+            const piece=boardState[i]
+            if(piece && ((color==='w'&&isWhite(piece))||(color==='b'&&isBlack(piece)))){
+              for(let j=0;j<64;j++){
+                if(legalManualMove(i,j)) list.push({from:i,to:j})
+              }
+            }
+          }
+          return list
         }
         
         
