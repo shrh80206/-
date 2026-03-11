@@ -242,7 +242,16 @@
           // default allow for anything else
           return true
         }
-        undoBtn.addEventListener('click',()=>{if(history.length){boardState=history.pop();turn=turn==='w'?'b':'w';selected=null;render()}})
+        undoBtn.addEventListener('click',()=>{
+          if(history.length){
+            boardState=history.pop();
+            turn=turn==='w'?'b':'w';
+            selected=null;
+            gameOver=false; // in case undoing past win
+            statusEl.classList.remove('win');
+            render();
+          }
+        })
         resetBtn.addEventListener('click',()=>{boardState=[
           '♜','♞','♝','♛','♚','♝','♞','♜',
           '♟','♟','♟','♟','♟','♟','♟','♟',
@@ -318,7 +327,7 @@
           }
         }
         function unicode(p){const m={p:'♟',r:'♜',n:'♞',b:'♝',q:'♛',k:'♚',P:'♙',R:'♖',N:'♘',B:'♗',Q:'♕',K:'♔'};return m[p]||''}
-        undoBtn.addEventListener('click',()=>{game.undo();selected=null;render()})
+        undoBtn.addEventListener('click',()=>{game.undo();selected=null;statusEl.classList.remove('win');render()})
         resetBtn.addEventListener('click',()=>{game.reset();selected=null;statusEl.classList.remove('win');render()})
         makeBoard();render()
       }
