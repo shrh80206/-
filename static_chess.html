@@ -23,6 +23,7 @@
       .btn{padding:8px 10px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
       .row{display:flex;gap:12px}
       pre{white-space:pre-wrap;background:#f7f7f7;padding:8px;border-radius:6px}
+      #status.win{color:#c00;font-weight:700;font-size:1.2em}
       @media(max-width:880px){.wrap{padding:8px}.board{width:360px;height:360px}}
     </style>
   </head>
@@ -101,7 +102,10 @@
             boardEl.children[selected].classList.add('highlight')
           }
           turnEl.textContent=turn==='w'?'白方':'黑方'
-          statusEl.textContent='狀態：進行中'
+          if(!gameOver){ // only overwrite when game still going
+            statusEl.textContent='狀態：進行中'
+            statusEl.classList.remove('win')
+          }
         }
         function onSquareClick(e){
           if(gameOver) return
@@ -131,7 +135,11 @@
         }
         function isWhite(piece){return ['♙','♖','♘','♗','♕','♔'].includes(piece)}
         function isBlack(piece){return ['♟','♜','♞','♝','♛','♚'].includes(piece)}
-        function finish(text){statusEl.textContent=text; gameOver = true}
+        function finish(text){
+          statusEl.textContent=text
+          statusEl.classList.add('win')
+          gameOver = true
+        }
         
         
         function legalManualMove(from,to){
@@ -244,7 +252,7 @@
           '','','','','','','','',
           '♙','♙','♙','♙','♙','♙','♙','♙',
           '♖','♘','♗','♕','♔','♗','♘','♖'
-        ];turn='w';history=[];selected=null;gameOver=false;render()})
+        ];turn='w';history=[];selected=null;gameOver=false;statusEl.classList.remove('win');render()})
         makeBoard();render()
       } else {
         // chess.js available, use complete rules
@@ -296,14 +304,22 @@
           }
         }
         function updateStatus(){
-          if(game.in_checkmate()){statusEl.textContent='狀態：將死，'+(game.turn()==='w'?'黑方':'白方')+' 勝利'}
-          else if(game.in_draw()){statusEl.textContent='狀態：和局'}
-          else if(game.in_check()){statusEl.textContent='狀態：被將軍'}
-          else{statusEl.textContent='狀態：進行中'}
+          statusEl.classList.remove('win')
+          if(game.in_checkmate()){
+            statusEl.textContent='狀態：將死，'+(game.turn()==='w'?'黑方':'白方')+' 勝利'
+            statusEl.classList.add('win')
+          } else if(game.in_draw()){
+            statusEl.textContent='狀態：和局'
+            statusEl.classList.add('win')
+          } else if(game.in_check()){
+            statusEl.textContent='狀態：被將軍'
+          } else{
+            statusEl.textContent='狀態：進行中'
+          }
         }
         function unicode(p){const m={p:'♟',r:'♜',n:'♞',b:'♝',q:'♛',k:'♚',P:'♙',R:'♖',N:'♘',B:'♗',Q:'♕',K:'♔'};return m[p]||''}
         undoBtn.addEventListener('click',()=>{game.undo();selected=null;render()})
-        resetBtn.addEventListener('click',()=>{game.reset();selected=null;render()})
+        resetBtn.addEventListener('click',()=>{game.reset();selected=null;statusEl.classList.remove('win');render()})
         makeBoard();render()
       }
     </script>
